@@ -1,5 +1,5 @@
 /**
- * ngCssInjector 0.1.0
+ * ngCssInjector 0.2.0
  * https://github.com/CristianMR/ngcssinjector
  * (c) Cristian Martín Rios 2014 | License MIT
  * Based on angular-css-injector v1.0.4, copyright (c) 2013 Gabriel Delépine
@@ -7,9 +7,11 @@
 'use strict';
 angular.module('ngCssInjector', []).provider('cssInjector', [function() {
     var singlePageMode = false;
+    var defaultOrderByExpression = false;
 
     function CssInjector($q, $rootScope, scope){
         var defers = {};
+        var indexedStylesheets = {};
 
         // Capture the event `locationChangeStart` when the url change. If singlePageMode===TRUE, call the function `disableAll`
         $rootScope.$on('$locationChangeStart', function(){
@@ -19,11 +21,21 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
 
         // Used to add a CSS files in the head tag of the page, and return promise if true, else false
         var addStylesheet = function(href){
-            if(scope.injectedStylesheets[href]) {
+            var extra = false;
+            //Extra info can be used to order the array
+            if(typeof href === "object"){
+                if(!href.href) return;
+                extra = href;
+                extra.disabled = false;
+                href = href.href;
+            }
+
+            if(indexedStylesheets[href]) {
                 enableStylesheet(href);
                 return false;
             }
-            scope.injectedStylesheets[href] = {disabled: false};
+            indexedStylesheets[href] = extra || {disabled: false, href: href};
+            scope.injectedStylesheets.push(indexedStylesheets[href]);
 
             var defer = $q.defer();
             defers[href] = defer;
@@ -49,29 +61,35 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
         };
 
         var enableStylesheet = function(href){
-            if(scope.injectedStylesheets[href]) scope.injectedStylesheets[href].disabled = false;
+            if(indexedStylesheets[href]) indexedStylesheets[href].disabled = false;
         };
 
         var disableStylesheet = function(href){
-            if(scope.injectedStylesheets[href]) scope.injectedStylesheets[href].disabled = true;
+            if(indexedStylesheets[href]) indexedStylesheets[href].disabled = true;
         };
 
         var disableManyStylesheet = function(array){
-            if(scope.injectedStylesheets)
+            if(indexedStylesheets)
                 for(var i = 0; i < array.length; i++){
                     disableStylesheet(array[i]);
                 }
         };
 
         var disableAll = function(){
-            if(scope.injectedStylesheets)
-                for(var i = 0; i < scope.injectedStylesheets.length; i++)
-                    disableStylesheet(scope.injectedStylesheets[i]);
+            if(indexedStylesheets)
+                for(var i = 0; i < indexedStylesheets.length; i++)
+                    disableStylesheet(indexedStylesheets[i]);
         };
 
         var remove = function(href){
-            if(scope.injectedStylesheets && scope.injectedStylesheets[href]){
-                delete scope.injectedStylesheets[href];
+            if(indexedStylesheets && indexedStylesheets[href]){
+                delete indexedStylesheets[href];
+                for(var i = 0; i < scope.injectedStylesheets.length; i++){
+                    if(scope.injectedStylesheets[i].href === href){
+                        scope.injectedStylesheets.splice(i, 1);
+                        break;
+                    }
+                }
             }
         };
 
@@ -81,7 +99,8 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
         };
 
         var removeAll = function(){
-            scope.injectedStylesheets = {}; // Make it empty
+            indexedStylesheets = {}; // Make it empty
+            scope.injectedStylesheets = [];
         };
 
         //Resolve promise
@@ -110,9 +129,12 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
         var scope = head.scope();
         if(scope === undefined)
             throw("ngCssInjector error : Please initialize your app in the HTML tag and be sure your page has a HEAD tag.");
-        scope.injectedStylesheets = {};
+        scope.injectedStylesheets = [];
+        scope.orderByExpression = defaultOrderByExpression;
         $timeout(function(){
-            head.append($compile("<link data-ng-repeat='(key,value) in injectedStylesheets' data-ng-href='{{key}}' value='value.disabled' css-injector-callback rel='stylesheet'/>")(scope))
+            //Use orderByFilter only if exists on init
+            var orderByFilter = scope.orderByExpression ? '| orderBy:orderByExpression' : '';
+            head.append($compile("<link data-ng-repeat='href in injectedStylesheets "+orderByFilter+" track by href.href' data-ng-href='{{href.href}}' value='href.disabled' css-injector-callback rel='stylesheet'/>")(scope))
         });
         return new CssInjector($q, $rootScope, scope);
     }];
@@ -120,7 +142,11 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
     this.setSinglePageMode = function(mode){
         singlePageMode = mode;
         return this;
-    }
+    };
+
+    this.setOrderByExpression = function(expression){
+        defaultOrderByExpression = expression;
+    };
 }]).directive('cssInjectorCallback', ['cssInjector', function (cssInjector) {
     return {
         scope: {

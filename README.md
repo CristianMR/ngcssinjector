@@ -11,18 +11,18 @@ Load multiple css files in AngularJS with promises. This module by default load 
 How to use ?
 ====
 
-`1`. Your angular's app must be defined on the HTML tag of your page
+1. Your angular's app must be defined on the HTML tag of your page
 
 ```html
 <html ng-app="myApp"
 ```
 
-`2`. Add the module "ngCssInjector" to your AngularJS apps
+2. Add the module "ngCssInjector" to your AngularJS apps
 ```javascript
      angular.module('myApp', ['ngCssInjector']);
 ```
 
-`3`. Get this service where you want and add your css files in your HTML page ! Example here in a $routeProvider when resolve:
+3. Get this service where you want and add your css files in your HTML page ! Example here in a $routeProvider when resolve:
 ```javascript
      controller: 'OneController',
      resolve: {
@@ -33,7 +33,36 @@ How to use ?
      }
 ```
 
-`4`. Maybe you want to show a page until resolve. When the promise is resolved, you can disable another stylesheets to avoid conflicts:
+Instead of strings you can use objects with extra info:
+
+```javascript
+     controller: 'OneController',
+     resolve: {
+        css: ['cssInjector', function(cssInjector){
+            //priority is just a name, use what you want, but respect href property name
+            return cssInjector.addMany([{"href": "/path/to/your/css/file.css", "priority": 0},
+            {"href": "/path/to/your/css/file2.css", "priority": 2},
+            {"href": "/path/to/your/css/file3.css", "priority": 1}]);
+        }]
+     }
+```
+
+4.1 To use orderBy on your stylesheets, you need to configure the `cssInjectorProvider`:
+```javascript
+	 myApp.config(function(cssInjectorProvider){
+	     //priority is a property in the object
+	 	 cssInjectorProvider.setOrderByExpression('priority');
+	 });
+```
+
+4.2 To disable all added CSS files when the page change (in a single page application), configure the `cssInjectorProvider`:
+```javascript
+	 myApp.config(function(cssInjectorProvider){
+	 	 cssInjectorProvider.setSinglePageMode(true);
+	 });
+```
+
+5. Maybe you want to show a page until resolve. When the promise is resolved, you can disable another stylesheets to avoid conflicts:
 ```javascript
      function OneController($scope, cssInjector){
          //Disable many at once
@@ -43,21 +72,14 @@ How to use ?
      }
 ```
 
-`5`. To disable all added CSS files when the page change (in a single page application), configure the `cssInjectorProvider`:
-```javascript
-	 myApp.config(function(cssInjectorProvider){
-	 	 cssInjectorProvider.setSinglePageMode(true);
-	 });
-```
-
-`6`. To disable manually all added CSS files, call the function `disableAll`:
+6. To disable manually all added CSS files, call the function `disableAll`:
 ```javascript
      function OneController($scope, cssInjector){
          cssInjector.disableAll();
      }
 ```
 
-`7`. Also, you can remove CSS files in this way:
+7. Also, you can remove CSS files in this way:
 ```javascript
      function OneController($scope, cssInjector){
          //Remove all
