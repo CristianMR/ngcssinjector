@@ -1,5 +1,5 @@
 /**
- * ngCssInjector 0.2.0
+ * ngCssInjector 0.2.1
  * https://github.com/CristianMR/ngcssinjector
  * (c) Cristian Martín Rios 2014 | License MIT
  * Based on angular-css-injector v1.0.4, copyright (c) 2013 Gabriel Delépine
@@ -34,8 +34,8 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
                 enableStylesheet(href);
                 return false;
             }
-            indexedStylesheets[href] = extra || {disabled: false, href: href};
-            scope.injectedStylesheets.push(indexedStylesheets[href]);
+            var index = scope.injectedStylesheets.push(extra || {disabled: false, href: href}) - 1;
+            indexedStylesheets[href] = scope.injectedStylesheets[index];
 
             var defer = $q.defer();
             defers[href] = defer;
@@ -61,10 +61,12 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
         };
 
         var enableStylesheet = function(href){
+            if(typeof href === "object") href = href.href;
             if(indexedStylesheets[href]) indexedStylesheets[href].disabled = false;
         };
 
         var disableStylesheet = function(href){
+            if(typeof href === "object") href = href.href;
             if(indexedStylesheets[href]) indexedStylesheets[href].disabled = true;
         };
 

@@ -69,6 +69,11 @@ Instead of strings you can use objects with extra info:
          cssInjector.disableMany(["/path/to/your/css/file4.css", "/path/to/your/css/file5.css"]);
          //Disable only one
          cssInjector.disable("/path/to/your/css/file6.css");
+
+         //If you want to send objects
+         cssInjector.disableMany([{"href": "/path/to/your/css/file4.css"}, {"href": "/path/to/your/css/file5.css"}]);
+
+         cssInjector.disable({"href": "/path/to/your/css/file6.css"});
      }
 ```
 

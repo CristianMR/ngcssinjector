@@ -1,6 +1,6 @@
 {
   "name": "ngcssinjector",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Load multiple css files in AngularJS with promises.",
   "main": "./dist/ngcssinjector.min.js",
   "directories": {
