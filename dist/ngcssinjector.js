@@ -1,5 +1,5 @@
 /**
- * ngCssInjector 0.2.1
+ * ngCssInjector 0.2.2
  * https://github.com/CristianMR/ngcssinjector
  * (c) Cristian Martín Rios 2014 | License MIT
  * Based on angular-css-injector v1.0.4, copyright (c) 2013 Gabriel Delépine
@@ -9,9 +9,10 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
     var singlePageMode = false;
     var defaultOrderByExpression = false;
 
-    function CssInjector($q, $rootScope, scope){
+    function CssInjector($q, $rootScope, $filter, scope){
         var defers = {};
         var indexedStylesheets = {};
+        var orderBy = $filter('orderBy');
 
         // Capture the event `locationChangeStart` when the url change. If singlePageMode===TRUE, call the function `disableAll`
         $rootScope.$on('$locationChangeStart', function(){
@@ -34,8 +35,11 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
                 enableStylesheet(href);
                 return false;
             }
-            var index = scope.injectedStylesheets.push(extra || {disabled: false, href: href}) - 1;
-            indexedStylesheets[href] = scope.injectedStylesheets[index];
+            var stylesheet = extra || {disabled: false, href: href};
+            scope.injectedStylesheets.push(stylesheet);
+            if(scope.orderByExpression)
+                scope.injectedStylesheets = orderBy(scope.injectedStylesheets, scope.orderByExpression);
+            indexedStylesheets[href] = stylesheet;
 
             var defer = $q.defer();
             defers[href] = defer;
@@ -126,7 +130,7 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
         };
     }
 
-    this.$get = ['$q', '$compile', '$timeout', '$rootScope', function($q, $compile, $timeout, $rootScope){
+    this.$get = ['$q', '$compile', '$filter', '$timeout', '$rootScope', function($q, $compile, $filter, $timeout, $rootScope){
         var head = angular.element(document.getElementsByTagName('head')[0]);
         var scope = head.scope();
         if(scope === undefined)
@@ -134,11 +138,9 @@ angular.module('ngCssInjector', []).provider('cssInjector', [function() {
         scope.injectedStylesheets = [];
         scope.orderByExpression = defaultOrderByExpression;
         $timeout(function(){
-            //Use orderByFilter only if exists on init
-            var orderByFilter = scope.orderByExpression ? '| orderBy:orderByExpression' : '';
-            head.append($compile("<link data-ng-repeat='href in injectedStylesheets "+orderByFilter+" track by href.href' data-ng-href='{{href.href}}' value='href.disabled' css-injector-callback rel='stylesheet'/>")(scope))
+            head.append($compile("<link data-ng-repeat='href in injectedStylesheets track by href.href' data-ng-href='{{href.href}}' value='href.disabled' css-injector-callback rel='stylesheet'/>")(scope))
         });
-        return new CssInjector($q, $rootScope, scope);
+        return new CssInjector($q, $rootScope, $filter, scope);
     }];
 
     this.setSinglePageMode = function(mode){
